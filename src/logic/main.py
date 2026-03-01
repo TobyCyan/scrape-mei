@@ -6,7 +6,7 @@ the GUI and parser modules.
 """
 import tkinter as tk
 
-from gui import AnimeScraperGUI
+from gui import GUI
 
 
 def main():
@@ -19,7 +19,7 @@ def main():
         pass
     
     root = tk.Tk()
-    app = AnimeScraperGUI(root)
+    app = GUI(root)
     root.mainloop()
 
 

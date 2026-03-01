@@ -1,7 +1,7 @@
 """
 GUI module for Anime Figurine Image Scraper.
 
-This module contains the AnimeScraperGUI class which provides
+This module contains the GUI class which provides
 a Tkinter-based graphical user interface.
 """
 import tkinter as tk
@@ -13,9 +13,9 @@ from scraper import ScraperFactory
 from parser import ScraperParser
 
 
-class AnimeScraperGUI:
+class GUI:
     """
-    Tkinter-based GUI for the anime figurine scraper.
+    Tkinter-based GUI for the Scrape Mei application.
     """
     
     def __init__(self, root):
@@ -26,7 +26,7 @@ class AnimeScraperGUI:
             root: Tkinter root window
         """
         self.root = root
-        self.root.title("Anime Figurine Image Scraper")
+        self.root.title("Scrape Mei")
         self.root.geometry("700x600")
         self.root.resizable(True, True)
         
@@ -50,7 +50,7 @@ class AnimeScraperGUI:
         # Title
         title_label = ttk.Label(
             main_frame,
-            text="Anime Figurine Image Scraper",
+            text="Scrape Mei - Anime Figurine Image Scraper",
             font=("Arial", 16, "bold")
         )
         title_label.grid(row=0, column=0, columnspan=3, pady=(0, 20))
@@ -122,7 +122,7 @@ class AnimeScraperGUI:
         self.status_text.grid(row=5, column=1, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=5)
         
         # Progress bar
-        self.progress = ttk.Progressbar(main_frame, mode='indeterminate')
+        self.progress = ttk.Progressbar(main_frame, mode='indeterminate', maximum=100)
         self.progress.grid(row=6, column=0, columnspan=3, sticky=(tk.W, tk.E), pady=(5, 0))
     
     def browse_directory(self):
@@ -194,6 +194,10 @@ class AnimeScraperGUI:
         self.is_scraping = True
         self.scrape_btn.configure(state='disabled')
         self.clear_btn.configure(state='disabled')
+        
+        # Reset and start progress bar
+        self.progress.configure(mode='indeterminate')
+        self.progress['value'] = 0
         self.progress.start()
         
         # Progress callback
@@ -223,7 +227,11 @@ class AnimeScraperGUI:
         self.is_scraping = False
         self.scrape_btn.configure(state='normal')
         self.clear_btn.configure(state='normal')
+        
+        # Complete the progress bar
         self.progress.stop()
+        self.progress.configure(mode='determinate')
+        self.progress['value'] = 100
         
         self.append_status("\n" + "="*50)
         self.append_status(message)
