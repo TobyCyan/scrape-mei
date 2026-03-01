@@ -68,6 +68,9 @@ class KotobukiyaScraper(BaseScraper):
         
         # Strategy 1: Find images in product gallery/slider
         gallery_selectors = [
+            'div.detailSlider img',                # Kotobukiya main slider
+            'div.detailHeader_main img',           # Kotobukiya header main
+            'div.detailHeader_inner img',          # Kotobukiya header inner
             'div.product-image img',
             'div.productImage img',
             'div.slider img',
@@ -84,8 +87,15 @@ class KotobukiyaScraper(BaseScraper):
                     src = img.get('src') or img.get('data-src') or img.get('data-zoom-image')
                     if src:
                         full_url = urljoin(self.url, src)
-                        # Skip thumbnails and non-product images
-                        if not any(word in full_url.lower() for word in ['thumb', 'icon', 'logo', 'banner', 'nav', 'menu', 'btn']):
+                        # Skip social media icons and non-product images
+                        # Note: Use word boundaries to avoid filtering 'thumbnail' directory paths
+                        excluded_patterns = [
+                            '_thumb.', '-thumb.', '/thumb.', 'thumb_', 'thumb-',  # Actual thumbnails
+                            'icon', 'logo', 'banner', 'nav', 'menu', 'btn',
+                            'sns', 'twitter', 'facebook', 'instagram', 'social', 'share',
+                            'footer', 'header', 'sidebar'
+                        ]
+                        if not any(pattern in full_url.lower() for pattern in excluded_patterns):
                             if full_url not in image_urls:
                                 image_urls.append(full_url)
                 if image_urls:
@@ -109,9 +119,15 @@ class KotobukiyaScraper(BaseScraper):
             for img in all_images:
                 src = img.get('src') or img.get('data-src')
                 if src and any(ext in src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']):
-                    # Only include product-related images, filter out UI elements
+                    # Only include product-related images, filter out UI elements and social media
                     if any(word in src.lower() for word in ['product', 'item', 'figure']):
-                        if not any(word in src.lower() for word in ['icon', 'logo', 'banner', 'nav', 'menu', 'btn', 'thumb']):
+                        excluded_patterns = [
+                            '_thumb.', '-thumb.', '/thumb.', 'thumb_', 'thumb-',  # Actual thumbnails
+                            'icon', 'logo', 'banner', 'nav', 'menu', 'btn',
+                            'sns', 'twitter', 'facebook', 'instagram', 'social', 'share',
+                            'footer', 'header', 'sidebar'
+                        ]
+                        if not any(pattern in src.lower() for pattern in excluded_patterns):
                             full_url = urljoin(self.url, src)
                             if full_url not in image_urls:
                                 image_urls.append(full_url)

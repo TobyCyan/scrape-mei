@@ -158,8 +158,15 @@ class GoodSmileScraper(BaseScraper):
                         src = img.get('src') or img.get('data-src') or img.get('data-original')
                         if src:
                             full_url = urljoin(self.url, src)
-                            # Skip thumbnails, small images, and non-product images
-                            if not any(word in full_url.lower() for word in ['thumb', 'small', 'icon', 'logo', 'banner', 'btn', 'button', 'nav']):
+                            # Skip social media icons and non-product images
+                            # Note: Use word boundaries to avoid filtering 'thumbnail' directory paths
+                            excluded_patterns = [
+                                '_thumb.', '-thumb.', '/thumb.', 'thumb_', 'thumb-',  # Actual thumbnails
+                                'small', 'icon', 'logo', 'banner', 'btn', 'button', 'nav',
+                                'sns', 'twitter', 'facebook', 'instagram', 'social', 'share',
+                                'footer', 'header', 'sidebar'
+                            ]
+                            if not any(pattern in full_url.lower() for pattern in excluded_patterns):
                                 if full_url not in image_urls:
                                     image_urls.append(full_url)
                     if image_urls:
