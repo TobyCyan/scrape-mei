@@ -69,6 +69,7 @@ class KotobukiyaScraper(BaseScraper):
             'div.slider img',
             'div.gallery img',
             'ul.product-images img',
+            'div.product-gallery img',
             'div.images img',
         ]
         
@@ -79,11 +80,12 @@ class KotobukiyaScraper(BaseScraper):
                     src = img.get('src') or img.get('data-src') or img.get('data-zoom-image')
                     if src:
                         full_url = urljoin(self.url, src)
-                        # Skip thumbnails
-                        if 'thumb' not in full_url.lower():
+                        # Skip thumbnails and non-product images
+                        if not any(word in full_url.lower() for word in ['thumb', 'icon', 'logo', 'banner', 'nav', 'menu', 'btn']):
                             if full_url not in image_urls:
                                 image_urls.append(full_url)
-                break
+                if image_urls:
+                    break
         
         # Strategy 2: Look for high-res image links
         if not image_urls:
@@ -91,21 +93,24 @@ class KotobukiyaScraper(BaseScraper):
             for link in image_links:
                 href = link.get('href')
                 if href and any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']):
-                    full_url = urljoin(self.url, href)
-                    if full_url not in image_urls:
-                        image_urls.append(full_url)
+                    # Only include if it looks like a product image
+                    if any(word in href.lower() for word in ['product', 'item', 'figure', 'img']):
+                        full_url = urljoin(self.url, href)
+                        if full_url not in image_urls:
+                            image_urls.append(full_url)
         
-        # Strategy 3: Find all relevant images on page
+        # Strategy 3: Find all relevant images on page (last resort)
         if not image_urls:
             all_images = self.soup.find_all('img')
             for img in all_images:
                 src = img.get('src') or img.get('data-src')
                 if src and any(ext in src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']):
-                    # Filter out icons, logos, banners
-                    if not any(word in src.lower() for word in ['icon', 'logo', 'banner', 'nav', 'menu']):
-                        full_url = urljoin(self.url, src)
-                        if full_url not in image_urls:
-                            image_urls.append(full_url)
+                    # Only include product-related images, filter out UI elements
+                    if any(word in src.lower() for word in ['product', 'item', 'figure']):
+                        if not any(word in src.lower() for word in ['icon', 'logo', 'banner', 'nav', 'menu', 'btn', 'thumb']):
+                            full_url = urljoin(self.url, src)
+                            if full_url not in image_urls:
+                                image_urls.append(full_url)
         
         self.logger.info(f"Found {len(image_urls)} images for Kotobukiya product")
         return image_urls

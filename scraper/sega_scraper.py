@@ -68,6 +68,7 @@ class SegaScraper(BaseScraper):
             'div.prize-image img',
             'div.product-img img',
             'div.image-gallery img',
+            'div.product-gallery img',
             'ul.images img',
             'div.photo img',
         ]
@@ -79,11 +80,12 @@ class SegaScraper(BaseScraper):
                     src = img.get('src') or img.get('data-src') or img.get('data-original')
                     if src:
                         full_url = urljoin(self.url, src)
-                        # Skip thumbnails and small images
-                        if 'thumb' not in full_url.lower() and 'small' not in full_url.lower():
+                        # Skip thumbnails, small images, and non-product images
+                        if not any(word in full_url.lower() for word in ['thumb', 'small', 'icon', 'logo', 'banner', 'header', 'footer', 'btn']):
                             if full_url not in image_urls:
                                 image_urls.append(full_url)
-                break
+                if image_urls:
+                    break
         
         # Strategy 2: Look for image links (often high-res versions)
         if not image_urls:
@@ -91,21 +93,24 @@ class SegaScraper(BaseScraper):
             for link in image_links:
                 href = link.get('href')
                 if href and any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']):
-                    full_url = urljoin(self.url, href)
-                    if full_url not in image_urls:
-                        image_urls.append(full_url)
+                    # Only include if it looks like a product image
+                    if any(word in href.lower() for word in ['product', 'item', 'prize', 'figure', 'img']):
+                        full_url = urljoin(self.url, href)
+                        if full_url not in image_urls:
+                            image_urls.append(full_url)
         
-        # Strategy 3: Find all product images on page
+        # Strategy 3: Find all product images on page (last resort)
         if not image_urls:
             all_images = self.soup.find_all('img')
             for img in all_images:
                 src = img.get('src') or img.get('data-src')
                 if src and any(ext in src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']):
-                    # Filter out icons, logos, banners
-                    if not any(word in src.lower() for word in ['icon', 'logo', 'banner', 'header', 'footer']):
-                        full_url = urljoin(self.url, src)
-                        if full_url not in image_urls:
-                            image_urls.append(full_url)
+                    # Only include product-related images
+                    if any(word in src.lower() for word in ['product', 'item', 'prize', 'figure']):
+                        if not any(word in src.lower() for word in ['icon', 'logo', 'banner', 'header', 'footer', 'nav', 'thumb']):
+                            full_url = urljoin(self.url, src)
+                            if full_url not in image_urls:
+                                image_urls.append(full_url)
         
         self.logger.info(f"Found {len(image_urls)} images for Sega product")
         return image_urls

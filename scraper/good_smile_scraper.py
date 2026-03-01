@@ -62,12 +62,13 @@ class GoodSmileScraper(BaseScraper):
         
         image_urls = []
         
-        # Strategy 1: Find images in product gallery
+        # Strategy 1: Find images in product gallery (specific containers)
         gallery_selectors = [
             'div.itemImg img',
             'div.product-gallery img',
             'div.gallery img',
-            'div.images img',
+            'div.slider img',
+            'ul.slides img',
             'div.product-images img',
         ]
         
@@ -78,21 +79,22 @@ class GoodSmileScraper(BaseScraper):
                     src = img.get('src') or img.get('data-src') or img.get('data-original')
                     if src:
                         full_url = urljoin(self.url, src)
-                        # Skip thumbnails and small images
-                        if 'thumb' not in full_url.lower() and 'small' not in full_url.lower():
+                        # Skip thumbnails, small images, and non-product images
+                        if not any(word in full_url.lower() for word in ['thumb', 'small', 'icon', 'logo', 'banner', 'btn', 'button', 'nav']):
                             if full_url not in image_urls:
                                 image_urls.append(full_url)
-                break
+                if image_urls:
+                    break
         
-        # Strategy 2: Find all images on page if gallery not found
+        # Strategy 2: Look for high-resolution image links (fallback)
         if not image_urls:
-            all_images = self.soup.find_all('img')
-            for img in all_images:
-                src = img.get('src') or img.get('data-src')
-                if src and any(ext in src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']):
-                    # Filter out icons, logos, banners
-                    if not any(word in src.lower() for word in ['icon', 'logo', 'banner', 'btn', 'button']):
-                        full_url = urljoin(self.url, src)
+            image_links = self.soup.find_all('a', href=True)
+            for link in image_links:
+                href = link.get('href')
+                if href and any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+                    # Only include if it's clearly a product image
+                    if any(word in href.lower() for word in ['product', 'item', 'figure', 'img']):
+                        full_url = urljoin(self.url, href)
                         if full_url not in image_urls:
                             image_urls.append(full_url)
         
