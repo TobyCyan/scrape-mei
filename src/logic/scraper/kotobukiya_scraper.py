@@ -65,13 +65,31 @@ class KotobukiyaScraper(BaseScraper):
         if not self.soup:
             raise ValueError("Page not fetched. Call fetch_page() first.")
         
-        image_urls = []
+        # Try multiple strategies in order of preference
+        strategies = [
+            self._extract_from_gallery_selectors,
+            self._extract_from_image_links,
+            self._extract_from_all_images,
+        ]
         
-        # Strategy 1: Find images in product gallery/slider
+        for strategy in strategies:
+            image_urls = strategy()
+            if image_urls:
+                # Convert thumbnail URLs to full-resolution URLs
+                image_urls = [self._convert_to_full_resolution(url) for url in image_urls]
+                self.logger.info(f"Found {len(image_urls)} images for Kotobukiya product")
+                return image_urls
+        
+        self.logger.warning("No images found for Kotobukiya product")
+        return []
+    
+    def _extract_from_gallery_selectors(self) -> List[str]:
+        """Extract images from product gallery/slider using CSS selectors."""
+        image_urls = []
         gallery_selectors = [
-            'div.detailSlider img',                # Kotobukiya main slider
-            'div.detailHeader_main img',           # Kotobukiya header main
-            'div.detailHeader_inner img',          # Kotobukiya header inner
+            'div.detailSlider img',
+            'div.detailHeader_main img',
+            'div.detailHeader_inner img',
             'div.product-image img',
             'div.productImage img',
             'div.slider img',
@@ -83,61 +101,87 @@ class KotobukiyaScraper(BaseScraper):
         
         for selector in gallery_selectors:
             images = self.soup.select(selector)
-            if images:
-                for img in images:
-                    src = img.get('src') or img.get('data-src') or img.get('data-zoom-image')
-                    if src:
-                        full_url = urljoin(self.url, src)
-                        # Skip social media icons, shop offers, and non-product images
-                        # Note: Use word boundaries to avoid filtering 'thumbnail' directory paths
-                        excluded_patterns = [
-                            '_thumb.', '-thumb.', '/thumb.', 'thumb_', 'thumb-',  # Actual thumbnails
-                            'icon', 'logo', 'banner', 'nav', 'menu', 'btn',
-                            'sns', 'twitter', 'facebook', 'instagram', 'social', 'share',
-                            'footer', 'header', 'sidebar', 'shop_offer'  # Shop offers return 403
-                        ]
-                        if not any(pattern in full_url.lower() for pattern in excluded_patterns):
-                            if full_url not in image_urls:
-                                image_urls.append(full_url)
-                if image_urls:
-                    break
+            if not images:
+                continue
+            
+            for img in images:
+                src = img.get('src') or img.get('data-src') or img.get('data-zoom-image')
+                if not src:
+                    continue
+                
+                full_url = urljoin(self.url, src)
+                
+                if not self._is_product_image(full_url):
+                    continue
+                
+                if full_url not in image_urls:
+                    image_urls.append(full_url)
+            
+            if image_urls:
+                break
         
-        # Strategy 2: Look for high-res image links
-        if not image_urls:
-            image_links = self.soup.find_all('a', href=True)
-            for link in image_links:
-                href = link.get('href')
-                if href and any(ext in href.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']):
-                    # Only include if it looks like a product image
-                    if any(word in href.lower() for word in ['product', 'item', 'figure', 'img']):
-                        full_url = urljoin(self.url, href)
-                        if full_url not in image_urls:
-                            image_urls.append(full_url)
-        
-        # Strategy 3: Find all relevant images on page (last resort)
-        if not image_urls:
-            all_images = self.soup.find_all('img')
-            for img in all_images:
-                src = img.get('src') or img.get('data-src')
-                if src and any(ext in src.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp']):
-                    # Only include product-related images, filter out UI elements and social media
-                    if any(word in src.lower() for word in ['product', 'item', 'figure']):
-                        excluded_patterns = [
-                            '_thumb.', '-thumb.', '/thumb.', 'thumb_', 'thumb-',  # Actual thumbnails
-                            'icon', 'logo', 'banner', 'nav', 'menu', 'btn',
-                            'sns', 'twitter', 'facebook', 'instagram', 'social', 'share',
-                            'footer', 'header', 'sidebar', 'shop_offer'  # Shop offers return 403
-                        ]
-                        if not any(pattern in src.lower() for pattern in excluded_patterns):
-                            full_url = urljoin(self.url, src)
-                            if full_url not in image_urls:
-                                image_urls.append(full_url)
-        
-        # Convert thumbnail URLs to full-resolution URLs
-        image_urls = [self._convert_to_full_resolution(url) for url in image_urls]
-        
-        self.logger.info(f"Found {len(image_urls)} images for Kotobukiya product")
         return image_urls
+    
+    def _extract_from_image_links(self) -> List[str]:
+        """Extract high-res image URLs from anchor tags."""
+        image_urls = []
+        image_extensions = ['.jpg', '.jpeg', '.png', '.webp']
+        
+        for link in self.soup.find_all('a', href=True):
+            href = link.get('href')
+            if not href:
+                continue
+            
+            # Check if link points to an image
+            if not any(ext in href.lower() for ext in image_extensions):
+                continue
+            
+            # Only include product-related images
+            if not any(word in href.lower() for word in ['product', 'item', 'figure', 'img']):
+                continue
+            
+            full_url = urljoin(self.url, href)
+            if full_url not in image_urls:
+                image_urls.append(full_url)
+        
+        return image_urls
+    
+    def _extract_from_all_images(self) -> List[str]:
+        """Last resort: find all relevant images on page."""
+        image_urls = []
+        image_extensions = ['.jpg', '.jpeg', '.png', '.webp']
+        
+        for img in self.soup.find_all('img'):
+            src = img.get('src') or img.get('data-src')
+            if not src:
+                continue
+            
+            # Check if src has image extension
+            if not any(ext in src.lower() for ext in image_extensions):
+                continue
+            
+            # Only include product-related images
+            if not any(word in src.lower() for word in ['product', 'item', 'figure']):
+                continue
+            
+            if not self._is_product_image(src):
+                continue
+            
+            full_url = urljoin(self.url, src)
+            if full_url not in image_urls:
+                image_urls.append(full_url)
+        
+        return image_urls
+    
+    def _is_product_image(self, url: str) -> bool:
+        """Check if a URL is likely a product image (not UI element or social media)."""
+        excluded_patterns = [
+            '_thumb.', '-thumb.', '/thumb.', 'thumb_', 'thumb-',
+            'icon', 'logo', 'banner', 'nav', 'menu', 'btn',
+            'sns', 'twitter', 'facebook', 'instagram', 'social', 'share',
+            'footer', 'header', 'sidebar', 'shop_offer'
+        ]
+        return not any(pattern in url.lower() for pattern in excluded_patterns)
     
     def _convert_to_full_resolution(self, url: str) -> str:
         """

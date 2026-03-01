@@ -51,50 +51,67 @@ class ImageDownloader:
         """
         async with semaphore:
             try:
-                self.logger.info(f"Downloading: {url}")
-                async with session.get(url, timeout=30) as response:
-                    if response.status == 200:
-                        content = await response.read()
-                        
-                        # Ensure parent directory exists
-                        filepath.parent.mkdir(parents=True, exist_ok=True)
-                        
-                        # Write file
-                        with open(filepath, 'wb') as f:
-                            f.write(content)
-                        
-                        self.logger.info(f"Saved: {filepath.name}")
-                        return True, f"Downloaded: {filepath.name}"
-                    else:
-                        error_msg = f"HTTP {response.status} for {url}"
-                        self.logger.warning(error_msg)
-                        
-                        # Retry on server errors
-                        if response.status >= 500 and retry_count < self.max_retries:
-                            await asyncio.sleep(2 ** retry_count)  # Exponential backoff
-                            return await self.download_image(session, url, filepath, semaphore, retry_count + 1)
-                        
-                        return False, error_msg
-                        
+                return await self._attempt_download(session, url, filepath)
             except asyncio.TimeoutError:
-                error_msg = f"Timeout downloading {url}"
-                self.logger.warning(error_msg)
-                
-                if retry_count < self.max_retries:
-                    await asyncio.sleep(2 ** retry_count)
-                    return await self.download_image(session, url, filepath, semaphore, retry_count + 1)
-                
-                return False, error_msg
-                
+                return await self._handle_timeout(session, url, filepath, semaphore, retry_count)
             except Exception as e:
-                error_msg = f"Error downloading {url}: {str(e)}"
-                self.logger.error(error_msg)
-                
-                if retry_count < self.max_retries:
-                    await asyncio.sleep(2 ** retry_count)
-                    return await self.download_image(session, url, filepath, semaphore, retry_count + 1)
-                
-                return False, error_msg
+                return await self._handle_error(session, url, filepath, semaphore, retry_count, e)
+    
+    async def _attempt_download(self, session: aiohttp.ClientSession, url: str, filepath: Path) -> Tuple[bool, str]:
+        """Attempt to download an image."""
+        self.logger.info(f"Downloading: {url}")
+        
+        async with session.get(url, timeout=30) as response:
+            if response.status == 200:
+                return await self._save_image(response, filepath)
+            
+            error_msg = f"HTTP {response.status} for {url}"
+            self.logger.warning(error_msg)
+            
+            # Check if we should retry on server errors
+            if response.status >= 500:
+                raise Exception(error_msg)
+            
+            return False, error_msg
+    
+    async def _save_image(self, response, filepath: Path) -> Tuple[bool, str]:
+        """Save downloaded image content to file."""
+        content = await response.read()
+        
+        # Ensure parent directory exists
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Write file
+        with open(filepath, 'wb') as f:
+            f.write(content)
+        
+        self.logger.info(f"Saved: {filepath.name}")
+        return True, f"Downloaded: {filepath.name}"
+    
+    async def _handle_timeout(self, session: aiohttp.ClientSession, url: str, 
+                               filepath: Path, semaphore: asyncio.Semaphore, retry_count: int) -> Tuple[bool, str]:
+        """Handle timeout errors with retry logic."""
+        error_msg = f"Timeout downloading {url}"
+        self.logger.warning(error_msg)
+        
+        if retry_count < self.max_retries:
+            await asyncio.sleep(2 ** retry_count)
+            return await self.download_image(session, url, filepath, semaphore, retry_count + 1)
+        
+        return False, error_msg
+    
+    async def _handle_error(self, session: aiohttp.ClientSession, url: str, 
+                            filepath: Path, semaphore: asyncio.Semaphore, 
+                            retry_count: int, error: Exception) -> Tuple[bool, str]:
+        """Handle general errors with retry logic."""
+        error_msg = f"Error downloading {url}: {str(error)}"
+        self.logger.error(error_msg)
+        
+        if retry_count < self.max_retries:
+            await asyncio.sleep(2 ** retry_count)
+            return await self.download_image(session, url, filepath, semaphore, retry_count + 1)
+        
+        return False, error_msg
     
     async def download_all(
         self,
