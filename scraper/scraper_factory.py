@@ -21,10 +21,16 @@ class ScraperFactory:
     
     # Registry of available scrapers
     _scrapers: Dict[str, Type[BaseScraper]] = {
-        'goodsmile': GoodSmileScraper,
         'good_smile': GoodSmileScraper,
         'kotobukiya': KotobukiyaScraper,
         'sega': SegaScraper,
+    }
+    
+    # Mapping of alternative names to canonical names
+    _aliases = {
+        'goodsmile': 'good_smile',
+        'good smile': 'good_smile',
+        'good smile company': 'good_smile',
     }
     
     @classmethod
@@ -47,10 +53,14 @@ class ScraperFactory:
         # Normalize company type (lowercase, no spaces)
         company_key = company_type.lower().strip().replace(' ', '_')
         
+        # Check aliases first
+        if company_key in cls._aliases:
+            company_key = cls._aliases[company_key]
+        
         scraper_class = cls._scrapers.get(company_key)
         
         if scraper_class is None:
-            available = ', '.join(sorted(set(cls._scrapers.keys())))
+            available = ', '.join(cls.get_supported_companies())
             error_msg = f"Unsupported company: '{company_type}'. Available: {available}"
             logger.error(error_msg)
             raise ValueError(error_msg)
@@ -64,14 +74,14 @@ class ScraperFactory:
         Get a list of supported company names.
         
         Returns:
-            List of supported company names
+            List of supported company names (deduplicated and sorted)
         """
-        # Return unique, formatted company names
-        companies = set()
+        # Return unique, formatted company names from the main registry only
+        companies = []
         for key in cls._scrapers.keys():
             # Convert to display format
             display_name = key.replace('_', ' ').title()
-            companies.add(display_name)
+            companies.append(display_name)
         return sorted(companies)
     
     @classmethod

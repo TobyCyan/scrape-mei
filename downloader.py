@@ -27,13 +27,13 @@ class ImageDownloader:
         self.max_concurrent = max_concurrent
         self.max_retries = max_retries
         self.logger = logging.getLogger('scraper')
-        self.semaphore = asyncio.Semaphore(max_concurrent)
         
     async def download_image(
         self,
         session: aiohttp.ClientSession,
         url: str,
         filepath: Path,
+        semaphore: asyncio.Semaphore,
         retry_count: int = 0
     ) -> Tuple[bool, str]:
         """
@@ -43,12 +43,13 @@ class ImageDownloader:
             session: aiohttp session
             url: Image URL
             filepath: Destination file path
+            semaphore: Semaphore for concurrency control
             retry_count: Current retry attempt
             
         Returns:
             Tuple of (success: bool, message: str)
         """
-        async with self.semaphore:
+        async with semaphore:
             try:
                 self.logger.info(f"Downloading: {url}")
                 async with session.get(url, timeout=30) as response:
@@ -71,7 +72,7 @@ class ImageDownloader:
                         # Retry on server errors
                         if response.status >= 500 and retry_count < self.max_retries:
                             await asyncio.sleep(2 ** retry_count)  # Exponential backoff
-                            return await self.download_image(session, url, filepath, retry_count + 1)
+                            return await self.download_image(session, url, filepath, semaphore, retry_count + 1)
                         
                         return False, error_msg
                         
@@ -81,7 +82,7 @@ class ImageDownloader:
                 
                 if retry_count < self.max_retries:
                     await asyncio.sleep(2 ** retry_count)
-                    return await self.download_image(session, url, filepath, retry_count + 1)
+                    return await self.download_image(session, url, filepath, semaphore, retry_count + 1)
                 
                 return False, error_msg
                 
@@ -91,7 +92,7 @@ class ImageDownloader:
                 
                 if retry_count < self.max_retries:
                     await asyncio.sleep(2 ** retry_count)
-                    return await self.download_image(session, url, filepath, retry_count + 1)
+                    return await self.download_image(session, url, filepath, semaphore, retry_count + 1)
                 
                 return False, error_msg
     
@@ -131,6 +132,9 @@ class ImageDownloader:
         successful = 0
         failed = 0
         
+        # Create semaphore in the same event loop
+        semaphore = asyncio.Semaphore(self.max_concurrent)
+        
         async with aiohttp.ClientSession() as session:
             tasks = []
             
@@ -145,7 +149,7 @@ class ImageDownloader:
                 filepath = product_dir / filename
                 
                 # Create download task
-                task = self.download_image(session, url, filepath)
+                task = self.download_image(session, url, filepath, semaphore)
                 tasks.append(task)
             
             # Execute downloads and gather results
