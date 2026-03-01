@@ -36,17 +36,17 @@ def test_aliases():
     print("\nTesting company aliases...")
     from scraper import ScraperFactory
     
-    # Test various ways to refer to Good Smile
+    # Test various ways to refer to Good Smile (use valid Good Smile URL)
     test_cases = [
-        ('Good Smile', 'GoodSmileScraper'),
-        ('good smile', 'GoodSmileScraper'),
-        ('goodsmile', 'GoodSmileScraper'),
-        ('good_smile', 'GoodSmileScraper'),
+        ('Good Smile', 'GoodSmileScraper', 'https://www.goodsmile.info/en/product/test'),
+        ('good smile', 'GoodSmileScraper', 'https://www.goodsmile.info/en/product/test'),
+        ('goodsmile', 'GoodSmileScraper', 'https://www.goodsmileus.com/products/test'),
+        ('good_smile', 'GoodSmileScraper', 'https://www.goodsmileus.com/products/test'),
     ]
     
-    for company_name, expected_class in test_cases:
+    for company_name, expected_class, test_url in test_cases:
         try:
-            scraper = ScraperFactory.get_scraper(company_name, "http://example.com")
+            scraper = ScraperFactory.get_scraper(company_name, test_url)
             if scraper.__class__.__name__ == expected_class:
                 print(f"✓ '{company_name}' -> {expected_class}")
             else:

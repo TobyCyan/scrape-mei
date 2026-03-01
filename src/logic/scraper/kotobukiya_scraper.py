@@ -15,6 +15,10 @@ class KotobukiyaScraper(BaseScraper):
     - https://www.kotobukiya.co.jp/product/...
     """
     
+    VALID_DOMAINS = [
+        'kotobukiya.co.jp',
+    ]
+    
     def get_product_name(self) -> str:
         """
         Extract product name from Kotobukiya page.

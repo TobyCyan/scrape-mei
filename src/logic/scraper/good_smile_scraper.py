@@ -17,6 +17,12 @@ class GoodSmileScraper(BaseScraper):
     - https://www.goodsmileus.com/product/...
     """
     
+    VALID_DOMAINS = [
+        'goodsmile.info',
+        'goodsmileus.com',
+        'goodsmilecompany.com',
+    ]
+    
     def get_product_name(self) -> str:
         """
         Extract product name from Good Smile Company page.
