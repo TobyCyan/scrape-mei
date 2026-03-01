@@ -46,6 +46,27 @@ pyinstaller --onefile --windowed --name ScrapeMei main.py
 
 The executable will be in the `dist/` folder.
 
+## Troubleshooting Install Issues
+
+### Issue: pip not found
+Install Python 3.11+ from python.org and ensure "Add to PATH" is checked
+
+### Issue: aiohttp won't install
+```bash
+pip install --upgrade pip
+pip install aiohttp --no-cache-dir
+```
+
+### Issue: tkinter not available
+Tkinter comes with Python. Reinstall Python with tcl/tk support.
+
+## Next Steps
+
+1. Test the application with a real product URL
+2. Customize CSS selectors in scraper files if needed
+3. Adjust download settings in main.py
+4. Add more companies by following the README guide
+
 ## File Structure Overview
 
 ```
