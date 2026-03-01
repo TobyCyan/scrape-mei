@@ -2,6 +2,11 @@
 Test script to verify installation and basic functionality.
 """
 import sys
+from pathlib import Path
+
+# Add logic directory to path
+logic_path = Path(__file__).parent.parent / 'logic'
+sys.path.insert(0, str(logic_path))
 
 
 def test_imports():

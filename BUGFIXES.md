@@ -70,7 +70,7 @@ This ensures the semaphore is always created and used in the same event loop.
 
 Run the verification test:
 ```bash
-python test_fixes.py
+python src/tests/test_fixes.py
 ```
 
 Expected output:
@@ -90,7 +90,7 @@ Fixed issues:
 
 The application is now fully functional. Try it out:
 ```bash
-python main.py
+python run.py
 ```
 
 All issues have been resolved!

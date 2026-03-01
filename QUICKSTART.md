@@ -9,7 +9,7 @@
 
 2. **Run the Application**
    ```bash
-   python main.py
+   python run.py
    ```
 
 3. **Test with a Product URL**
