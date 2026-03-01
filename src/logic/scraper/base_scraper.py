@@ -40,8 +40,7 @@ class BaseScraper(ABC):
         if not self.validate_url():
             valid_domains = ', '.join(self.VALID_DOMAINS)
             raise ValueError(
-                f"URL domain mismatch: '{url}' does not match expected domains for {self.__class__.__name__}. "
-                f"Valid domains: {valid_domains}"
+                f"This URL is not from a supported domain. Valid domains: {valid_domains}"
             )
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
