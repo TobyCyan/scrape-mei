@@ -31,7 +31,7 @@ class BaseScraper(ABC):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Encoding': 'gzip, deflate',  # Removed 'br' to avoid Brotli compression issues
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
             'Sec-Fetch-Dest': 'document',
@@ -63,7 +63,8 @@ class BaseScraper(ABC):
             
             response = session.get(self.url, timeout=30)
             response.raise_for_status()
-            self.soup = BeautifulSoup(response.content, 'html.parser')
+            # Use response.text instead of response.content to handle decompression and encoding
+            self.soup = BeautifulSoup(response.text, 'html.parser')
             return self.soup
         except requests.RequestException as e:
             self.logger.error(f"Failed to fetch page: {e}")
