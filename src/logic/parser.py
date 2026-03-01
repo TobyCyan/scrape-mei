@@ -6,7 +6,6 @@ the scraping and downloading process.
 """
 from pathlib import Path
 from typing import List
-import logging
 
 from scraper import ScraperFactory
 from downloader import ImageDownloader
