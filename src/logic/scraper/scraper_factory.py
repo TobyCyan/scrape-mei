@@ -6,7 +6,6 @@ import logging
 from .base_scraper import BaseScraper
 from .good_smile_scraper import GoodSmileScraper
 from .kotobukiya_scraper import KotobukiyaScraper
-from .sega_scraper import SegaScraper
 
 
 class ScraperFactory:
@@ -23,7 +22,6 @@ class ScraperFactory:
     _scrapers: Dict[str, Type[BaseScraper]] = {
         'good_smile': GoodSmileScraper,
         'kotobukiya': KotobukiyaScraper,
-        'sega': SegaScraper,
     }
     
     # Mapping of alternative names to canonical names

@@ -70,7 +70,7 @@ def test_modules():
         return False
     
     try:
-        from scraper import GoodSmileScraper, KotobukiyaScraper, SegaScraper
+        from scraper import GoodSmileScraper, KotobukiyaScraper
         print("✓ company scrapers")
     except ImportError as e:
         print(f"✗ company scrapers - {e}")

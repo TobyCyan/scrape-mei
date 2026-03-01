@@ -31,11 +31,6 @@ https://www.goodsmile.info/en/product/[product-id]
 https://en.kotobukiya.co.jp/product/[product-id]
 ```
 
-### Sega
-```
-https://segaprize.com/prize_item/[product-id]
-```
-
 ## Creating an Executable
 
 To create a standalone .exe file:
@@ -79,7 +74,6 @@ ScrapeMei/
     ├── base_scraper.py
     ├── good_smile_scraper.py
     ├── kotobukiya_scraper.py
-    ├── sega_scraper.py
     └── scraper_factory.py
 ```
 
