@@ -136,7 +136,8 @@ class ScraperParser:
             successful, failed, download_path = self.downloader.download_images_sync(
                 image_urls,
                 product_name,
-                download_progress
+                download_progress,
+                referer_url=url
             )
             
             # Report completion
@@ -203,7 +204,10 @@ class AnimeScraperGUI:
         # URL input
         ttk.Label(main_frame, text="Product URL:").grid(row=1, column=0, sticky=tk.W, pady=5)
         self.url_entry = ttk.Entry(main_frame, width=50)
-        self.url_entry.grid(row=1, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=5)
+        self.url_entry.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=5)
+        
+        self.clear_url_btn = ttk.Button(main_frame, text="Clear", command=self.clear_url)
+        self.clear_url_btn.grid(row=1, column=2, padx=(5, 0), pady=5)
         
         # Company selection
         ttk.Label(main_frame, text="Company:").grid(row=2, column=0, sticky=tk.W, pady=5)
@@ -286,6 +290,11 @@ class AnimeScraperGUI:
         self.status_text.configure(state='normal')
         self.status_text.delete(1.0, tk.END)
         self.status_text.configure(state='disabled')
+    
+    def clear_url(self):
+        """Clear the URL field."""
+        self.url_entry.delete(0, tk.END)
+        self.url_entry.focus()
     
     def append_status(self, message: str):
         """

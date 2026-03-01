@@ -100,7 +100,8 @@ class ImageDownloader:
         self,
         image_urls: List[str],
         product_name: str,
-        progress_callback: Callable[[int, int, str], None] = None
+        progress_callback: Callable[[int, int, str], None] = None,
+        referer_url: str = None
     ) -> Tuple[int, int, Path]:
         """
         Download all images asynchronously.
@@ -109,6 +110,7 @@ class ImageDownloader:
             image_urls: List of image URLs to download
             product_name: Product name for folder creation
             progress_callback: Optional callback function(current, total, message)
+            referer_url: Optional product page URL for Referer header
             
         Returns:
             Tuple of (successful_count, failed_count, download_path)
@@ -135,7 +137,17 @@ class ImageDownloader:
         # Create semaphore in the same event loop
         semaphore = asyncio.Semaphore(self.max_concurrent)
         
-        async with aiohttp.ClientSession() as session:
+        # Set up headers with Referer if provided (required by some sites like Kotobukiya)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate',
+        }
+        if referer_url:
+            headers['Referer'] = referer_url
+        
+        async with aiohttp.ClientSession(headers=headers) as session:
             tasks = []
             
             for idx, url in enumerate(unique_urls, 1):
@@ -178,7 +190,8 @@ class ImageDownloader:
         self,
         image_urls: List[str],
         product_name: str,
-        progress_callback: Callable[[int, int, str], None] = None
+        progress_callback: Callable[[int, int, str], None] = None,
+        referer_url: str = None
     ) -> Tuple[int, int, Path]:
         """
         Synchronous wrapper for async download_all method.
@@ -187,6 +200,7 @@ class ImageDownloader:
             image_urls: List of image URLs to download
             product_name: Product name for folder creation
             progress_callback: Optional callback function(current, total, message)
+            referer_url: Optional product page URL for Referer header
             
         Returns:
             Tuple of (successful_count, failed_count, download_path)
@@ -197,7 +211,7 @@ class ImageDownloader:
         
         try:
             result = loop.run_until_complete(
-                self.download_all(image_urls, product_name, progress_callback)
+                self.download_all(image_urls, product_name, progress_callback, referer_url)
             )
             return result
         finally:
