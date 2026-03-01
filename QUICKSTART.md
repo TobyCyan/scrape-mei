@@ -36,22 +36,37 @@ https://en.kotobukiya.co.jp/product/[product-id]
 
 To create a standalone .exe file (Windows):
 
-### Automated Build (Recommended)
+### Standard Build (Single .exe file)
 ```bash
 python build.py
 ```
 or simply double-click `build.bat`
 
-The build script automatically:
-- Reads all dependencies from `requirements.txt`
-- Bundles everything into a single executable
-- Places the .exe in the `dist/` folder
+Creates a single `ScrapeMei.exe` file (~18 MB) in `dist/` folder.
 
-**No Python installation required on target machines!**
+### Folder Distribution (Recommended if you get errors)
+```bash
+python build_folder.py
+```
+
+Creates `dist/ScrapeMei/` folder with .exe and dependencies.  
+**More reliable** - avoids single-file extraction issues.
+
+### Debug Build (For troubleshooting)
+```bash
+python build.py --debug
+```
+
+Creates .exe with visible console window to see error messages.
+
+**How it works:**
+- Reads all dependencies from `requirements.txt`
+- Automatically bundles everything
+- No Python installation required on target machines!
 
 ### Manual Build (Advanced)
 ```bash
-pyinstaller --onefile --windowed --name ScrapeMei run.py
+pyinstaller --onefile --windowed --name ScrapeMei --noupx run.py
 ```
 
 ## Troubleshooting Install Issues
@@ -80,6 +95,18 @@ The build script automatically reads `requirements.txt`. If you added a new pack
 2. Run `python build.py` again
 3. All dependencies are auto-detected and bundled
 
+### Issue: "Failed to start python embedded interpreter"
+This error occurs when running the .exe. Try these fixes:
+
+**Quick Fixes:**
+1. Use folder distribution: `python build_folder.py`
+2. Run in debug mode: `python build.py --debug` (shows error details)
+3. Disable antivirus temporarily or add `dist/` folder to exclusions
+4. Install [Visual C++ Redistributables](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+5. Run .exe as administrator (right-click → "Run as administrator")
+
+**Most Reliable:** Use the folder distribution (`build_folder.py`), which distributes the entire folder as a .zip file.
+
 ## Next Steps
 
 1. Test the application with real product URLs
@@ -94,20 +121,20 @@ The build script automatically reads `requirements.txt`. If you added a new pack
 ```
 ScrapeMei/
 ├── run.py               # Entry point - run this file
-├── build.py             # Automated build script
+├── build.py             # Standard build script (single .exe)
+├── build_folder.py      # Folder distribution build (more reliable)
 ├── build.bat            # Windows build wrapper
 ├── requirements.txt     # Python dependencies (auto-parsed by build.py)
+├── README.md            # Full documentation
+├── QUICKSTART.md        # Quick setup guide
 └── src/logic/           # Source code
     ├── main.py          # Application launcher
     ├── gui.py           # GUI components
     ├── parser.py        # Scraping orchestrator
     ├── downloader.py    # Async image downloads
     ├── utils.py         # Helper functions
-    └── scraper/         # Scraper modules
-        ├── base_scraper.py
-        ├── good_smile_scraper.py
-        ├── kotobukiya_scraper.py
-        └── scraper_factory.py
+   └── scraper/         # Scraper modules (base/factory/company scrapers)
+      └── ...
 ```
 
 ## Support

@@ -101,7 +101,7 @@ def clean_build_artifacts():
                     path.unlink()
 
 
-def build_executable():
+def build_executable(debug_mode=False):
     """Build the executable using PyInstaller."""
     print("\nBuilding executable with PyInstaller...")
     
@@ -113,11 +113,17 @@ def build_executable():
     cmd = [
         'pyinstaller',
         '--onefile',                    # Create a single executable
-        '--windowed',                   # No console window (GUI app)
         '--name', 'ScrapeMei',          # Output executable name
         '--icon', 'NONE',               # No icon (can add one later)
         '--add-data', 'src/logic;logic', # Include logic folder
+        '--noupx',                      # Disable UPX compression (can cause issues)
     ]
+    
+    # Add windowed only if not in debug mode
+    if not debug_mode:
+        cmd.append('--windowed')        # No console window (GUI app)
+    else:
+        print("DEBUG MODE: Building with console window for error visibility")
     
     # Add all hidden imports
     for module in hidden_imports:
@@ -171,6 +177,11 @@ def main():
     print("ScrapeMei - Build Executable")
     print("=" * 70)
     
+    # Check for debug mode flag
+    debug_mode = '--debug' in sys.argv or '-d' in sys.argv
+    if debug_mode:
+        print("\n⚠️  DEBUG MODE ENABLED - Console window will be visible")
+    
     # Check if PyInstaller is installed
     try:
         subprocess.run(['pyinstaller', '--version'], 
@@ -185,7 +196,7 @@ def main():
     clean_build_artifacts()
     
     # Build executable
-    if not build_executable():
+    if not build_executable(debug_mode):
         print("\nBuild failed!")
         return 1
     
@@ -197,10 +208,21 @@ def main():
     print("\n" + "=" * 70)
     print("Build completed successfully!")
     print("=" * 70)
-    print("\nNext steps:")
-    print("  1. Test the executable in dist/ScrapeMei.exe")
-    print("  2. Distribute the executable to users")
-    print("  3. Note: Users do NOT need Python installed")
+    
+    if debug_mode:
+        print("\nDEBUG BUILD - Run the .exe to see error messages in console")
+    else:
+        print("\nNext steps:")
+        print("  1. Test the executable in dist/ScrapeMei.exe")
+        print("  2. Distribute the executable to users")
+        print("  3. Note: Users do NOT need Python installed")
+    
+    print("\nTroubleshooting:")
+    print("  - If you get 'failed to start python embedded interpreter':")
+    print("    1. Run: python build.py --debug")
+    print("    2. Launch the debug .exe to see detailed error messages")
+    print("    3. Check if antivirus is blocking the .exe")
+    print("    4. Try running .exe as administrator")
     
     return 0
 
